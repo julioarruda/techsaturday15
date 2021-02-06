@@ -14,3 +14,49 @@ jobs:
         with:
           name: terraform
           path: ${{ github.workspace }}//appservice
+        
+  deploy-dev-infra:
+    name: Deploy Infra Dev
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}/appservice
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.TF_ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.TF_ARM_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.TF_ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.TF_ARM_TENNANT_ID }}    
+      
+      
+    environment:
+      name: dev
+    
+    needs: build
+    steps:
+      - name: Download Terraform
+        uses: actions/download-artifact@v2
+        with:
+          name: terraform
+          path: ${{ github.workspace }}//appservice
+      
+      - uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color -var "prefix=${{ secrets.RESOURCE_PREFIX }}" -lock=false
+        continue-on-error: true
+  
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var "prefix=${{ secrets.RESOURCE_PREFIX }}" -lock=false

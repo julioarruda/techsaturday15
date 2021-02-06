@@ -1,0 +1,16 @@
+name: DeployTerraform
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: terraform
+          path: ${{ github.workspace }}//appservice

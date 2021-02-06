@@ -27,7 +27,8 @@ jobs:
       ARM_CLIENT_ID: ${{ secrets.TF_ARM_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.TF_ARM_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.TF_ARM_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.TF_ARM_TENNANT_ID }}    
+      ARM_TENANT_ID: ${{ secrets.TF_ARM_TENNANT_ID }}
+      AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.STORAGE_CONNSTRING }}    
       
       
     environment:
@@ -40,7 +41,14 @@ jobs:
         with:
           name: terraform
           path: ${{ github.workspace }}//appservice
-      
+          
+      - name: Download TF State
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.0.72
+          inlineScript: |
+            az storage blob download-batch -d appservice --pattern terraform.tfstate -s ${{ secrets.CONTAINER_NAME }}     
+            
       - uses: hashicorp/setup-terraform@v1
         with:
           terraform_wrapper: false
@@ -60,3 +68,10 @@ jobs:
   
       - name: Terraform Apply
         run: terraform apply -auto-approve -var "prefix=${{ secrets.RESOURCE_PREFIX }}" -lock=false
+  
+      - name: Upload TF State
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.0.72
+          inlineScript: |
+            az storage blob upload-batch -d ${{ secrets.CONTAINER_NAME }} -s appservice --pattern *.tfstate
